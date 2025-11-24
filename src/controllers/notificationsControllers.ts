@@ -1,8 +1,8 @@
 // src/controllers/notificationsControllers.ts
 import { Hono } from "hono";       // valor real
 import type { Context } from "hono"; // solo tipo
-import Notification from "../models/notification";
-import Preferences from "../models/preferences";
+import Notification from "../models/notification.ts";
+import Preferences from "../models/preferences.ts";
 import { Resend } from "resend";
 import Redis from "ioredis";
 
