@@ -1,6 +1,8 @@
 import { Hono } from "hono";
-import notificationsControllers from "./controllers/notificationsControllers.ts";
 import { connectDB } from "./config/mongo.ts";
+import { getPreferences, setPreferences, sendNotification, getNotifications } from "./controllers/notificationsControllers.ts";
+
+
 
 const app = new Hono();
 
@@ -10,8 +12,11 @@ connectDB().catch(error => {
   process.exit(1);
 });
 
-// Montamos el sub-Hono en /api (puedes cambiarlo a "/" si quieres)
-app.route("/api", notificationsControllers);
+// RUTAS
+app.get("/preferences/:userId", getPreferences);
+app.post("/preferences", setPreferences);
+app.post("/notifications", sendNotification);
+app.get("/notifications/:userId", getNotifications);
 
 // SERVER
 const port = 3000;
