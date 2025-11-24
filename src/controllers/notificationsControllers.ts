@@ -1,15 +1,20 @@
 // src/controllers/notificationsControllers.ts
 import { Hono } from "hono";       // valor real
 import type { Context } from "hono"; // solo tipo
-import Notification from "../models/notification.ts";
-import Preferences from "../models/preferences.ts";
+import Notification from "../models/notification";
+import Preferences from "../models/preferences";
 import { Resend } from "resend";
 import Redis from "ioredis";
 
 const app = new Hono();
 
 // Configuración de Resend
-const resend = new Resend(process.env.RESEND_API_KEY);
+const apiKey = process.env.RESEND_API_KEY;
+if (!apiKey) {
+  throw new Error("RESEND_API_KEY no está definida en .env");
+}
+const resend = new Resend(apiKey);
+
 
 // Configuración de Redis
 const redis = new Redis({
