@@ -5,6 +5,7 @@
   "private": true,
   "devDependencies": {
     "@types/bun": "latest",
+    "@types/ioredis": "^5.0.0",
     "@types/node": "^24.10.1"
   },
   "peerDependencies": {
@@ -12,6 +13,8 @@
   },
   "dependencies": {
     "hono": "^4.10.6",
-    "mongoose": "^9.0.0"
+    "ioredis": "^5.8.2",
+    "mongoose": "^9.0.0",
+    "resend": "^6.5.2"
   }
 }
