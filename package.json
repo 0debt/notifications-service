@@ -4,12 +4,14 @@
   "type": "module",
   "private": true,
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@types/node": "^24.10.1"
   },
   "peerDependencies": {
     "typescript": "^5"
   },
   "dependencies": {
+    "hono": "^4.10.6",
     "mongoose": "^9.0.0"
   }
 }
