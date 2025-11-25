@@ -1,21 +1,20 @@
-#Usamos una imagen base de Bun  -> Versión slim 
-FROM oven/bun:latest-slim
+# Usamos la base oficial de Bun
+FROM oven/bun:1
 
-#Establecemos el directorio de trabajo dentro del contenedor
+# Creamos la carpeta de trabajo
 WORKDIR /app
 
-#Copiar los archivos de dependencias, guarda los datos en caché
-COPY package.json .
-COPY bun.lockb .
+# Copiamos los archivos de dependencias primero (para ir más rápido)
+COPY package.json bun.lockb ./
 
-#Instalamos las dependencias
-RUN bun install
+# Instalamos las dependencias (solo las necesarias para producción)
+RUN bun install --production
 
-#Copia el codigo del proyecto
+# Copiamos todo el resto de tu código
 COPY . .
 
-#Exponer el puerto
+# Abrimos el puerto 3000 (el de Hono)
 EXPOSE 3000
 
-#Arrancamos la aplicacion
-CMD ["bun", "run", "index.ts"]
+# Comando para arrancar el servidor
+CMD ["bun", "run", "start"]
