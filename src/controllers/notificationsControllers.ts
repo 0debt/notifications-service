@@ -11,7 +11,7 @@ const apiKey = process.env.RESEND_API_KEY;
 
 // Advertencia en consola si falta la key, pero no rompe la app inmediatamente
 if (!apiKey) {
-  console.warn("⚠️ ADVERTENCIA: RESEND_API_KEY no está definida en el .env");
+  console.warn("ADVERTENCIA: RESEND_API_KEY no está definida en el .env");
 }
 
 const resend = new Resend(apiKey);
@@ -35,14 +35,14 @@ const sendEmail = async (to: string, subject: string, content: string) => {
     });
 
     if (error) {
-      console.error("❌ Error devuelto por Resend:", error);
+      console.error("Error devuelto por Resend:", error);
       return null;
     }
 
-    console.log(`✅ Email enviado a ${to}. ID: ${data?.id}`);
+    console.log(`Email enviado a ${to}. ID: ${data?.id}`);
     return data;
   } catch (err) {
-    console.error("❌ Excepción intentando enviar email:", err);
+    console.error("Excepción intentando enviar email:", err);
     // No lanzamos el error (throw) para no detener el flujo principal si el email falla
     return null;
   }
@@ -60,7 +60,7 @@ const createNotification = async (userId: string, message: string) => {
       createdAt: new Date(),
     });
   } catch (error) {
-    console.error("❌ Error guardando notificación en Mongo:", error);
+    console.error("Error guardando notificación en Mongo:", error);
     throw error;
   }
 };
@@ -144,7 +144,7 @@ export const sendNotification = async (c: Context) => {
     });
 
   } catch (error: any) {
-    console.error("❌ Error en sendNotification:", error);
+    console.error("Error en sendNotification:", error);
     return c.json({ status: "error", error: error.message }, 500);
   }
 };
