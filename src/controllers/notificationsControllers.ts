@@ -9,7 +9,7 @@ import { Resend } from "resend";
 // ----------------------------------------
 const apiKey = process.env.RESEND_API_KEY;
 
-// Advertencia en consola si falta la key, pero no rompe la app inmediatamente
+// Advertencia en consola si falta la key
 if (!apiKey) {
   console.warn("ADVERTENCIA: RESEND_API_KEY no está definida en el .env");
 }
@@ -27,9 +27,8 @@ const resend = new Resend(apiKey);
 const sendEmail = async (to: string, subject: string, content: string) => {
   try {
     const { data, error } = await resend.emails.send({
-      // IMPORTANTE: Usamos el dominio verificado que te pasó tu compañero
       from: "0debt Notificaciones <noreply@mail.0debt.xyz>",
-      to: [to], // Resend espera un array de destinatarios
+      to: [to],
       subject: subject,
       html: content,
     });
@@ -43,13 +42,12 @@ const sendEmail = async (to: string, subject: string, content: string) => {
     return data;
   } catch (err) {
     console.error("Excepción intentando enviar email:", err);
-    // No lanzamos el error (throw) para no detener el flujo principal si el email falla
     return null;
   }
 };
 
 /**
- * Guarda una notificación interna en MongoDB
+ * Guarda una notificación interna en MongoDB (Campanita)
  */
 const createNotification = async (userId: string, message: string) => {
   try {
@@ -94,6 +92,7 @@ export const getNotifications = async (c: Context) => {
 };
 
 // POST /preferences
+// Usado para actualizar preferencias manualmente
 export const setPreferences = async (c: Context) => {
   try {
     const data = await c.req.json();
@@ -114,7 +113,7 @@ export const setPreferences = async (c: Context) => {
 };
 
 // POST /notifications
-// Este es el endpoint principal para crear alertas y mandar correos
+// Endpoint principal para crear alertas y mandar correos
 export const sendNotification = async (c: Context) => {
   try {
     const body = await c.req.json();
@@ -125,7 +124,7 @@ export const sendNotification = async (c: Context) => {
       emailSent: false
     };
 
-    // A. Si nos pasan userId y mensaje -> Guardamos en Base de Datos (Campana de notificaciones)
+    // A. Si nos pasan userId y mensaje -> Guardamos en Base de Datos
     if (userId && message) {
       await createNotification(userId, message);
       results.dbSaved = true;
@@ -146,5 +145,47 @@ export const sendNotification = async (c: Context) => {
   } catch (error: any) {
     console.error("Error en sendNotification:", error);
     return c.json({ status: "error", error: error.message }, 500);
+  }
+};
+
+// ----------------------------------------
+// 4. NUEVA FUNCIÓN PARA EL REGISTRO (INTEGRACIÓN PAREJA 1)
+// ----------------------------------------
+
+// POST /preferences/init
+// Esta función la llama el Users-Service cuando se crea un usuario nuevo
+export const initPreferences = async (c: Context) => {
+  try {
+    const body = await c.req.json();
+    const { userId, email } = body;
+
+    // 1. Validación básica
+    if (!userId) {
+      return c.json({ error: "Falta el userId" }, 400);
+    }
+
+    // 2. PARCHE DE SEGURIDAD 🛡️
+    // Si la Pareja 1 no envía el email, usamos uno temporal para no romper la DB
+    const userEmail = email || "pendiente_de_actualizar@0debt.xyz";
+
+    // 3. Guardamos en Base de Datos
+    await Preferences.updateOne(
+      { userId }, 
+      { 
+        $setOnInsert: { 
+          userId, 
+          email: userEmail, 
+          emailNotifications: true // Por defecto activadas
+        } 
+      },
+      { upsert: true }
+    );
+
+    console.log(`✅ Preferencias inicializadas para usuario: ${userId}`);
+    return c.json({ status: "created" }, 201);
+
+  } catch (error) {
+    console.error("Error en initPreferences:", error);
+    return c.json({ error: "Error interno del servidor" }, 500);
   }
 };
