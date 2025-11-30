@@ -1,7 +1,7 @@
 // src/controllers/notificationsControllers.ts
 import type { Context } from "hono";
 import Notification from "../models/notification";
-import Preferences from "../models/preferences";
+import Preferences, { type IPreferences } from "../models/preferences";
 import { emailBreaker } from "../config/circuitBreaker"; 
 
 // ----------------------------------------
@@ -180,11 +180,111 @@ export const initPreferences = async (c: Context) => {
       { upsert: true }
     );
 
-    console.log(`✅ Preferencias inicializadas para usuario: ${userId}`);
+    console.log(`Preferencias inicializadas para usuario: ${userId}`);
     return c.json({ status: "created" }, 201);
 
   } catch (error) {
     console.error("Error en initPreferences:", error);
     return c.json({ error: "Error interno del servidor" }, 500);
+  }
+};
+
+// ----------------------------------------
+// 4. HANDLER DE EVENTOS DE REDIS (LÓGICA ASÍNCRONA)
+// ----------------------------------------
+
+/**
+ * Función que recibe y procesa eventos de Redis (Publicados por otros servicios).
+ * Usa las preferencias del usuario para decidir si enviar notificaciones.
+ */
+export const handleRedisEvent = async (channel: string, message: string): Promise<void> => {
+  let eventData;
+  try {
+    eventData = JSON.parse(message);
+  } catch (e) {
+    console.error(`Fallo al parsear JSON del canal ${channel}. Ignorando mensaje.`);
+    return;
+  }
+  
+  // El ID del usuario afectado por el evento (varía según el evento)
+  // Intentamos obtener el ID del usuario del evento.
+  const affectedUserId = eventData.userId || eventData.memberId || eventData.targetUserId;
+  if (!affectedUserId) {
+    console.warn(`Evento ${channel} sin userId/memberId/targetUserId definido. Ignorando.`);
+    return;
+  }
+
+  try {
+    // 1. BUSCAR PREFERENCIAS DEL USUARIO
+    // Usamos el casting 'as IPreference | null' para que TS sepa qué buscar
+    const preference = await Preferences.findOne({ userId: affectedUserId }) as (IPreferences | null);
+
+    if (!preference) {
+        console.warn(`Usuario ${affectedUserId} no tiene preferencias. Ignorando eventos de notificación inmediatos.`);
+        // Podríamos inicializar aquí, pero idealmente lo hace users-service vía /init
+        return; 
+    }
+    
+    // 2. LÓGICA POR TIPO DE EVENTO
+    
+    switch (channel) {
+      case 'expense.created': {
+        const { expense, receivers } = eventData;
+        // Asumimos que el evento pasa el ID del usuario afectado en la propiedad 'affectedUserId'
+        const isReceiver = receivers.includes(affectedUserId); 
+        
+        // Lógica de negocio: Solo notificamos a los que tienen que pagar Y si tienen la preferencia activada
+        if (isReceiver && preference.alertOnExpenseCreation) {
+          
+          const notificationMessage = `¡Nuevo gasto! ${expense.payerName} ha pagado ${expense.amount} ${expense.currency} en '${expense.groupName}'. Revisa tu saldo.`;
+
+          // Guardar Notificación In-App (para la campana)
+          await createNotification(affectedUserId, notificationMessage);
+          
+          // Enviar Email, SOLO si las notificaciones globales están ON
+          if (preference.globalEmailNotifications) {
+            await sendEmail(
+              preference.email, 
+              `[Odebt] Deuda pendiente en ${expense.groupName}`, 
+              `Hola, se ha registrado un nuevo gasto. Revisa la aplicación para ver cómo te afecta.`
+            );
+          }
+        }
+        break;
+      }
+
+      case 'group.member.added': {
+        const { groupName, invitedUserEmail } = eventData;
+        
+        // Esta notificación es para el usuario INVITADO (cuyo email viene en el evento)
+        if (preference.globalEmailNotifications) {
+           await sendEmail(
+             invitedUserEmail,
+             `¡Has sido invitado a ${groupName}!`,
+             `<p>Felicidades, has sido añadido al grupo <b>${groupName}</b> en Odebt.</p>
+              <p>Haz click <a href="#">aquí</a> para empezar a dividir gastos.</p>`
+           );
+        }
+        break;
+      }
+
+      case 'user.deleted': {
+        // Lógica del patrón SAGA (Nivel 10): Tarea de compensación
+        console.warn(`[SAGA] Recibido evento user.deleted para ID: ${affectedUserId}. Iniciando limpieza...`);
+        
+        // 1. Eliminar datos privados (preferencias y notificaciones)
+        await Preferences.deleteOne({ userId: affectedUserId });
+        await Notification.deleteMany({ userId: affectedUserId });
+        
+        console.log(`[SAGA] Preferencias y notificaciones del usuario ${affectedUserId} eliminadas correctamente.`);
+        break;
+      }
+
+      default:
+        console.warn(`Evento desconocido recibido en el canal: ${channel}`);
+    }
+
+  } catch (error) {
+    console.error(`Error procesando evento ${channel} para user ${affectedUserId}:`, error);
   }
 };
