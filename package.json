@@ -10,7 +10,8 @@
   "devDependencies": {
     "@types/bun": "latest",
     "@types/ioredis": "^5.0.0",
-    "@types/node": "^24.10.1"
+    "@types/node": "^24.10.1",
+    "@types/opossum": "^8.1.9"
   },
   "peerDependencies": {
     "typescript": "^5"
@@ -20,6 +21,7 @@
     "ioredis": "^5.8.2",
     "mongodb": "^7.0.0",
     "mongoose": "^9.0.0",
+    "opossum": "^9.0.0",
     "resend": "^6.5.2"
   }
 }

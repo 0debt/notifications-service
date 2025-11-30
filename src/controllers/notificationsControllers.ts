@@ -2,7 +2,7 @@
 import type { Context } from "hono";
 import Notification from "../models/notification";
 import Preferences from "../models/preferences";
-import { Resend } from "resend";
+import { emailBreaker } from "../config/circuitBreaker"; 
 
 // ----------------------------------------
 // 1. CONFIGURACIÓN
@@ -14,8 +14,6 @@ if (!apiKey) {
   console.warn("ADVERTENCIA: RESEND_API_KEY no está definida en el .env");
 }
 
-const resend = new Resend(apiKey);
-
 // ----------------------------------------
 // 2. FUNCIONES AUXILIARES
 // ----------------------------------------
@@ -25,24 +23,25 @@ const resend = new Resend(apiKey);
  * Usa el dominio verificado 'mail.0debt.xyz'
  */
 const sendEmail = async (to: string, subject: string, content: string) => {
-  try {
-    const { data, error } = await resend.emails.send({
-      from: "0debt Notificaciones <noreply@mail.0debt.xyz>",
-      to: [to],
-      subject: subject,
-      html: content,
-    });
+ try {
+    // CRÍTICO: Usamos emailBreaker.fire() en lugar de la llamada directa a Resend
+    // Breaker.fire llama a la función protegida (sendEmailFunction)
+    const data = await emailBreaker.fire(to, subject, content); 
 
-    if (error) {
-      console.error("Error devuelto por Resend:", error);
-      return null;
-    }
-
-    console.log(`Email enviado a ${to}. ID: ${data?.id}`);
+    console.log(`Email enviado a ${to} (vía Breaker). ID: ${data?.id}`);
     return data;
-  } catch (err) {
-    console.error("Excepción intentando enviar email:", err);
-    return null;
+
+  } catch (err: any) {
+    // Si el breaker está ABIERTO, lanzará este error inmediatamente, protegiendo a Resend.
+    if (err.name === 'CircuitBreakerOpenError') {
+      console.warn("CIRCUIT BREAKER ACTIVO: La llamada a Resend fue BLOCQUEADA. Email no enviado.");
+    } else {
+      // Si el breaker está cerrado pero la llamada subyacente falló.
+      console.error("Excepción intentando enviar email (fallo interno o Breaker):", err.message);
+    }
+    
+    // No lanzamos el error para no detener el flujo principal si el email falla
+    return null; 
   }
 };
 
