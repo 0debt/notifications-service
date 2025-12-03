@@ -1,7 +1,8 @@
 import { Hono } from "hono";
+import { cors } from "hono/cors"; // 👈 1. IMPORTANTE: Importamos CORS
 import { connectDB } from "./config/mongo.ts";
 import { initRedisSubscriber } from "./config/redisSubscriber.ts";
-//Importamos el servicio del Cron Job (Resúmenes semanales)
+// Importamos el servicio del Cron Job (Resúmenes semanales)
 import { startWeeklySummaryJob } from "./services/summaryService.ts"; 
 import { 
   getPreferences, 
@@ -15,12 +16,21 @@ import {
 const app = new Hono();
 
 // -------------------------------------------------
-// NOTA: Hemos eliminado CORS porque ahora el API Gateway
-// se encarga de la seguridad perimetral. Nosotros solo
-// recibimos tráfico interno de confianza.
+// 1. CONFIGURACIÓN DE SEGURIDAD (CORS)
 // -------------------------------------------------
+// 👇 Esto es vital para que tu Frontend (puerto 3000) pueda hablar 
+// con este Backend (puerto 4000) en tu ordenador.
+app.use('/*', cors({
+  origin: '*', 
+  allowMethods: ['POST', 'GET', 'OPTIONS'],
+  allowHeaders: ['Content-Type', 'Authorization'],
+  // credentials: true, // ⚠️ OJO: Con '*', los navegadores suelen prohibir 'credentials: true'.
+                        // Si te da error en consola, borra esta línea o ponla en false.
+}));
 
-// 1. CONEXIÓN A DEPENDENCIAS CRÍTICAS (DB, REDIS y CRON)
+// -------------------------------------------------
+// 2. CONEXIÓN A DEPENDENCIAS CRÍTICAS (DB, REDIS y CRON)
+// -------------------------------------------------
 // Solo intentamos conectar a DB y Redis si NO estamos en modo test
 if (process.env.NODE_ENV !== 'test') {
   connectDB().then(() => {
@@ -42,7 +52,9 @@ if (process.env.NODE_ENV !== 'test') {
     console.log("🟡 Modo Test: Saltando conexión a DB y Redis.");
 }
 
-// 2. RUTAS
+// -------------------------------------------------
+// 3. RUTAS
+// -------------------------------------------------
 // 👇 Ruta para integración con Users-Service (Pareja 1)
 app.post("/preferences/init", initPreferences);
 
@@ -52,9 +64,11 @@ app.post("/preferences", setPreferences);
 app.post("/notifications", sendNotification);
 app.get("/notifications/:userId", getNotifications);
 
-// 3. SERVER
+// -------------------------------------------------
+// 4. SERVER
+// -------------------------------------------------
 const port = process.env.PORT || 3000;
-console.log(` Server is running on port ${port}`);
+console.log(`🚀 Server is running on port ${port}`);
 
 export default {
   app,
