@@ -3,6 +3,8 @@ import type { Context } from "hono";
 import Notification from "../models/notification";
 import Preferences, { type IPreferences } from "../models/preferences";
 import { emailBreaker } from "../config/circuitBreaker"; 
+import Bottleneck from "bottleneck";
+import { getEmailTemplate } from "../notifications/email-template";
 
 // ----------------------------------------
 // 1. CONFIGURACIÓN
@@ -14,6 +16,13 @@ if (!apiKey) {
   console.warn("ADVERTENCIA: RESEND_API_KEY no está definida en el .env");
 }
 
+// Asegura que no enviemos más de 1 email cada 600ms (aprox 100/minuto max)
+// para proteger tu cuenta de Resend y evitar errores 429 (Too Many Requests).
+const limiter = new Bottleneck({
+  minTime: 600, // Espera mínima entre tareas
+  maxConcurrent: 1 // Solo 1 a la vez
+});
+
 // ----------------------------------------
 // 2. FUNCIONES AUXILIARES
 // ----------------------------------------
@@ -22,11 +31,14 @@ if (!apiKey) {
  * Envía un email usando la API de Resend (SDK v2)
  * Usa el dominio verificado 'mail.0debt.xyz'
  */
-const sendEmail = async (to: string, subject: string, content: string) => {
+const sendEmail = async (to: string, subject: string, htmlContent: string) => {
  try {
     // CRÍTICO: Usamos emailBreaker.fire() en lugar de la llamada directa a Resend
     // Breaker.fire llama a la función protegida (sendEmailFunction)
-    const data = await emailBreaker.fire(to, subject, content); 
+    // limiter.schedule() pone la tarea en la cola y espera su turno.
+    const data = await limiter.schedule(() => 
+      emailBreaker.fire(to, subject, htmlContent)
+    );
 
     console.log(`Email enviado a ${to} (vía Breaker). ID: ${data?.id}`);
     return data;
@@ -123,15 +135,16 @@ export const sendNotification = async (c: Context) => {
       emailSent: false
     };
 
-    // A. Si nos pasan userId y mensaje -> Guardamos en Base de Datos
+    // Si nos pasan userId y mensaje -> Guardamos en Base de Datos
     if (userId && message) {
       await createNotification(userId, message);
       results.dbSaved = true;
     }
 
-    // B. Si nos pasan datos de email -> Enviamos correo vía Resend
     if (to && subject && content) {
-      const emailResult = await sendEmail(to, subject, content);
+      // Convertimos el texto plano en HTML profesional antes de enviar
+      const htmlBody = getEmailTemplate(subject, content, "Enviado manualmente desde API");
+      const emailResult = await sendEmail(to, subject, htmlBody);
       if (emailResult) results.emailSent = true;
     }
 
@@ -241,12 +254,20 @@ export const handleRedisEvent = async (channel: string, message: string): Promis
           // Guardar Notificación In-App (para la campana)
           await createNotification(affectedUserId, notificationMessage);
           
-          // Enviar Email, SOLO si las notificaciones globales están ON
           if (preference.globalEmailNotifications) {
+            // Usamos la plantilla HTML
+            const html = getEmailTemplate(
+              "Nuevo Gasto Registrado",
+              `<p>Hola,</p>
+               <p><b>${expense.payerName}</b> ha registrado un gasto de <b>${expense.amount} ${expense.currency}</b> en el grupo <i>${expense.groupName}</i>.</p>
+               <p>Entra en la app para ver los detalles.</p>`,
+              "Detalles de gasto"
+            );
+
             await sendEmail(
               preference.email, 
               `[Odebt] Deuda pendiente en ${expense.groupName}`, 
-              `Hola, se ha registrado un nuevo gasto. Revisa la aplicación para ver cómo te afecta.`
+              html
             );
           }
         }
@@ -256,13 +277,20 @@ export const handleRedisEvent = async (channel: string, message: string): Promis
       case 'group.member.added': {
         const { groupName, invitedUserEmail } = eventData;
         
-        // Esta notificación es para el usuario INVITADO (cuyo email viene en el evento)
         if (preference.globalEmailNotifications) {
+           // Usamos la plantilla HTML
+           const html = getEmailTemplate(
+             "¡Bienvenido al Grupo!",
+             `<p>Has sido añadido al grupo <b>${groupName}</b>.</p>
+              <p>Ahora podrás dividir gastos con tus amigos fácilmente.</p>
+              <a href="#" style="display:inline-block;background:#000;color:#fff;padding:10px 20px;text-decoration:none;border-radius:5px;margin-top:10px;">Ver Grupo</a>`,
+             "Invitación a grupo"
+           );
+
            await sendEmail(
              invitedUserEmail,
              `¡Has sido invitado a ${groupName}!`,
-             `<p>Felicidades, has sido añadido al grupo <b>${groupName}</b> en Odebt.</p>
-              <p>Haz click <a href="#">aquí</a> para empezar a dividir gastos.</p>`
+             html
            );
         }
         break;
@@ -272,7 +300,7 @@ export const handleRedisEvent = async (channel: string, message: string): Promis
         // Lógica del patrón SAGA (Nivel 10): Tarea de compensación
         console.warn(`[SAGA] Recibido evento user.deleted para ID: ${affectedUserId}. Iniciando limpieza...`);
         
-        // 1. Eliminar datos privados (preferencias y notificaciones)
+        // Eliminar datos privados (preferencias y notificaciones)
         await Preferences.deleteOne({ userId: affectedUserId });
         await Notification.deleteMany({ userId: affectedUserId });
         
