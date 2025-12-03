@@ -1,34 +1,29 @@
-# dependencies (bun install)
+# --- DEPENDENCIAS ---
+# Ignoramos node_modules para que Docker haga una instalación limpia
+# y no copie la carpeta gigante de tu Mac (que podría dar errores en Linux)
 node_modules
-bun.lockb
-# output
+
+# --- ARCHIVOS TEMPORALES Y SALIDAS ---
 out
 dist
 *.tgz
-
-# code coverage
 coverage
 *.lcov
-
-# logs
 logs
 _.log
-report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
+report.*.json
 
-# dotenv environment variable files
+# --- SECRETOS (¡MUY IMPORTANTE!) ---
+# Nunca queremos las claves reales dentro de la imagen
 .env
-.env.development.local
-.env.test.local
-.env.production.local
-.env.local
+.env.*
 
-# caches
+# --- CACHÉS Y SISTEMA ---
 .eslintcache
 .cache
 *.tsbuildinfo
-
-# IntelliJ based IDEs
 .idea
-
-# Finder (MacOS) folder config
 .DS_Store
+.git
+.gitignore
+Dockerfile
