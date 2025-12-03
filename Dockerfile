@@ -1,20 +1,19 @@
-# Usamos la base oficial de Bun
-FROM oven/bun:1
+# Usamos la imagen oficial de Bun
+FROM oven/bun:1 as base
 
-# Creamos la carpeta de trabajo
 WORKDIR /app
 
-# Copiamos los archivos de dependencias primero (para ir más rápido)
-COPY package.json ./
+# 1. Copiamos los archivos de definición (Incluimos bun.lockb)
+COPY package.json bun.lockb ./
 
-# Instalamos las dependencias (solo las necesarias para producción)
-RUN bun install --production
+# 2. Instalamos dependencias EXACTAS (--frozen-lockfile)
+RUN bun install --frozen-lockfile --production
 
-# Copiamos todo el resto de tu código
+# 3. Copiamos el código fuente
 COPY . .
 
-# Abrimos el puerto 3000 (el de Hono)
+# 4. Exponemos el puerto
 EXPOSE 3000
 
-# Comando para arrancar el servidor
+# 5. Comando de arranque
 CMD ["bun", "run", "start"]

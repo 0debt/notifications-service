@@ -1,29 +1,31 @@
 # --- DEPENDENCIAS ---
-# Ignoramos node_modules para que Docker haga una instalación limpia
-# y no copie la carpeta gigante de tu Mac (que podría dar errores en Linux)
-node_modules
+node_modules/
 
-# --- ARCHIVOS TEMPORALES Y SALIDAS ---
-out
-dist
-*.tgz
-coverage
-*.lcov
-logs
-_.log
-report.*.json
-
-# --- SECRETOS (¡MUY IMPORTANTE!) ---
-# Nunca queremos las claves reales dentro de la imagen
+# --- SEGURIDAD (CRÍTICO) ---
+# Nunca subir claves a GitHub
 .env
-.env.*
+.env.production
+.env.development
+.env.local
 
-# --- CACHÉS Y SISTEMA ---
-.eslintcache
-.cache
-*.tsbuildinfo
-.idea
+# --- BUILDS Y ARCHIVOS GENERADOS ---
+# Archivos compilados que no necesitamos versionar
+dist/
+out/
+build/
+coverage/
+
+# --- SISTEMA OPERATIVO Y LOGS ---
 .DS_Store
-.git
-.gitignore
-Dockerfile
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# --- IDEs ---
+.vscode/
+.idea/
+
+# NOTA IMPORTANTE:
+# NO ponemos 'bun.lockb' aquí.
+# Ese archivo SÍ debe subir a GitHub para asegurar las versiones.
