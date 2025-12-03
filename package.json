@@ -17,10 +17,12 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@types/node-cron": "^3.0.11",
     "hono": "^4.10.6",
     "ioredis": "^5.8.2",
     "mongodb": "^7.0.0",
     "mongoose": "^9.0.0",
+    "node-cron": "^4.2.1",
     "opossum": "^9.0.0",
     "resend": "^6.5.2"
   }

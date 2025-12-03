@@ -1,6 +1,8 @@
 import { Hono } from "hono";
 import { connectDB } from "./config/mongo.ts";
 import { initRedisSubscriber } from "./config/redisSubscriber.ts";
+//Importamos el servicio del Cron Job (Resúmenes semanales)
+import { startWeeklySummaryJob } from "./services/summaryService.ts"; 
 import { 
   getPreferences, 
   setPreferences, 
@@ -18,25 +20,26 @@ const app = new Hono();
 // recibimos tráfico interno de confianza.
 // -------------------------------------------------
 
-// 1. CONEXIÓN A DEPENDENCIAS CRÍTICAS (DB y REDIS)
+// 1. CONEXIÓN A DEPENDENCIAS CRÍTICAS (DB, REDIS y CRON)
 // Solo intentamos conectar a DB y Redis si NO estamos en modo test
 if (process.env.NODE_ENV !== 'test') {
-  // Conexión a Base de Datos
   connectDB().then(() => {
-    console.log(" DB Conectada");
+    console.log("✅ DB Conectada");
     
-    // Inicializar el suscriptor de Redis solo después de que la DB esté conectada
-    // Esto es importante para que el servicio no empiece a procesar eventos
-    // antes de poder guardar las notificaciones en Mongo.
+    // A. Inicializar el suscriptor de Redis (Event Driven)
     initRedisSubscriber(handleRedisEvent);
+
+    // B. Inicializar el Cron Job (Lógica Serverless simulada)
+    // Esto arrancará el reloj para enviar resúmenes los viernes
+    startWeeklySummaryJob();
     
   }).catch(error => {
-    console.error(" Error Crítico DB:", error);
+    console.error("❌ Error Crítico DB:", error);
     process.exit(1);
   });
 } else {
     // Modo Test
-    console.log(" Modo Test: Saltando conexión a DB y Redis.");
+    console.log("🟡 Modo Test: Saltando conexión a DB y Redis.");
 }
 
 // 2. RUTAS
