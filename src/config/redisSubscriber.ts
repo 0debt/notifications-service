@@ -11,9 +11,9 @@ export const initRedisSubscriber = (eventHandler: (channel: string, message: str
   
   // Lista de canales a los que nos subscribiremos
   const channels = [
-    'expense.created',      // Cuando se crea un gasto (Pareja 3)
-    'group-events',         // 👈 ¡CAMBIO CRÍTICO! (Sintonizamos el canal real de Groups)
-    'user.deleted',         // Para la lógica de compensación SAGA (Pareja 1)
+    'events',               // 👈 AQUÍ ESTÁ EL CAMBIO (Canal de la Pareja 3)
+    'group-events',         // Canal de la Pareja 2 (Groups)
+    'user.deleted',         // Canal de la Pareja 1 (Users)
   ];
 
   subscriber.subscribe(...channels, (err, count) => {
@@ -25,8 +25,8 @@ export const initRedisSubscriber = (eventHandler: (channel: string, message: str
   });
 
   subscriber.on('message', (channel, message) => {
+    // Log para depurar lo que llega realmente
     console.log(`📡 Recibido evento [${channel}]: ${message}`);
-    // Pasa el evento al controlador
     eventHandler(channel, message);
   });
   

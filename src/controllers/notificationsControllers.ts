@@ -185,6 +185,9 @@ export const initPreferences = async (c: Context) => {
 // ----------------------------------------
 // 5. HANDLER DE EVENTOS DE REDIS
 // ----------------------------------------
+// ----------------------------------------
+// 5. HANDLER DE EVENTOS DE REDIS (ADAPTADO A TODOS)
+// ----------------------------------------
 
 export const handleRedisEvent = async (channel: string, message: string): Promise<void> => {
   let eventData;
@@ -195,22 +198,57 @@ export const handleRedisEvent = async (channel: string, message: string): Promis
     return;
   }
   
-  // Adaptador para Groups
+  // -----------------------------------------------------
+  // A. ADAPTADOR PARA EXPENSES (Pareja 3)
+  // -----------------------------------------------------
+  // Ellos publican en 'events' con estructura { type: 'expense.created', data: {...} }
+  if (channel === 'events') {
+    const internalType = eventData.type;
+    
+    if (internalType === 'expense.created') {
+        channel = 'expense.created'; // Re-etiquetamos el canal para nuestro switch
+        const rawData = eventData.data;
+
+        // Transformamos sus datos feos a nuestra estructura bonita
+        eventData = {
+            expense: {
+                groupName: `Grupo ${rawData.groupId}`, // No mandan nombre, usamos ID
+                payerName: "Tú", // Asumimos que notificamos al pagador
+                amount: rawData.amount,
+                currency: "EUR", // Asumimos EUR
+                description: rawData.description
+            },
+            // IMPORTANTE: Como no mandan receivers, ponemos al payerId como objetivo
+            // para al menos enviarle una confirmación de "Gasto creado".
+            receivers: [rawData.payerId], 
+            
+            // Guardamos el ID para buscar preferencias
+            targetUserId: rawData.payerId
+        };
+    }
+  }
+
+  // -----------------------------------------------------
+  // B. ADAPTADOR PARA GROUPS (Pareja 2)
+  // -----------------------------------------------------
   if (channel === 'group-events') {
     const internalEventType = eventData.type; 
     const payload = eventData.payload;        
     channel = internalEventType; 
     eventData = payload; 
   }
+  // -----------------------------------------------------
 
+  // Buscamos el ID del usuario principal afectado
   const affectedUserId = eventData.userId || eventData.memberId || eventData.targetUserId;
   
   if (!affectedUserId) {
-    console.warn(`Evento ${channel} sin userId definido. Ignorando.`);
+    // Si sigue sin haber ID, no podemos hacer nada
     return;
   }
 
   try {
+    // Buscamos preferencias
     const preference = await Preferences.findOne({ userId: affectedUserId }) as (IPreferences | null);
 
     if (!preference) {
@@ -220,27 +258,29 @@ export const handleRedisEvent = async (channel: string, message: string): Promis
     
     switch (channel) {
       case 'expense.created': {
-        const { expense, receivers } = eventData;
-        const isReceiver = receivers.includes(affectedUserId); 
+        const { expense } = eventData;
         
-        if (isReceiver && preference.globalEmailNotifications) {
-          const notificationMessage = `¡Nuevo gasto! ${expense.payerName} ha pagado ${expense.amount} en '${expense.groupName}'.`;
+        // Lógica adaptada: Notificamos al usuario afectado (en este caso el pagador, 
+        // porque es el único ID que tenemos gracias a Expenses).
+        if (preference.globalEmailNotifications) {
+          
+          const notificationMessage = `✅ Gasto registrado: ${expense.amount}€ en ${expense.groupName}.`;
 
           // A) Campana
           await createNotification(affectedUserId, notificationMessage);
           
-          // B) Email con Plantilla ✨
+          // B) Email con Plantilla
           const htmlContent = getEmailTemplate(
-            "Nuevo Gasto Registrado", // Título
-            `<p>Hola,</p>
-             <p><b>${expense.payerName}</b> ha registrado un gasto de <b>${expense.amount} ${expense.currency}</b> en el grupo <i>${expense.groupName}</i>.</p>
-             <p>Entra en la app para ver los detalles y saldar deudas.</p>`, // Cuerpo
-            "Ver Detalles de Gasto" // Botón
+            "Gasto Registrado Correctamente", 
+            `<p>Has registrado un gasto de <b>${expense.amount} ${expense.currency}</b>.</p>
+             <p>Concepto: <i>${expense.description}</i></p>
+             <p>Grupo: ${expense.groupName}</p>`, 
+            "Ver Gasto"
           );
 
           await sendEmail(
             preference.email, 
-            `[Odebt] Nuevo gasto en ${expense.groupName}`, 
+            `[Odebt] Gasto creado en ${expense.groupName}`, 
             htmlContent
           );
         }
@@ -252,12 +292,10 @@ export const handleRedisEvent = async (channel: string, message: string): Promis
         
         if (preference.globalEmailNotifications) {
            if (invitedUserEmail) {
-             // ✨ Email con Plantilla
              const htmlContent = getEmailTemplate(
-               "¡Bienvenido al Grupo!", // Título
-               `<p>Has sido invitado a unirte al grupo <b>${groupName}</b>.</p>
-                <p>Ahora podrás dividir gastos con tus amigos fácilmente.</p>`, // Cuerpo
-               "Ir al Grupo" // Botón
+               "¡Bienvenido al Grupo!", 
+               `<p>Has sido invitado a unirte al grupo <b>${groupName}</b>.</p>`, 
+               "Ir al Grupo"
              );
 
              await sendEmail(
@@ -267,7 +305,6 @@ export const handleRedisEvent = async (channel: string, message: string): Promis
              );
            }
         }
-
         await createNotification(affectedUserId, `Te han añadido al grupo ${groupName}`);
         break;
       }
@@ -280,7 +317,8 @@ export const handleRedisEvent = async (channel: string, message: string): Promis
       }
 
       default:
-        console.warn(`Evento no manejado: ${channel}`);
+        // Ignoramos otros eventos de 'events' que no sean expense.created
+        break;
     }
 
   } catch (error) {
