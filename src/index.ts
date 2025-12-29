@@ -20,7 +20,7 @@ const app = new Hono();
 // -------------------------------------------------
 app.use('/*', cors({
   origin: '*', 
-  allowMethods: ['POST', 'GET', 'OPTIONS'],
+  allowMethods: ['POST', 'GET', 'OPTIONS','PATCH', 'DELETE'],
   allowHeaders: ['Content-Type', 'Authorization'],
 }));
 
@@ -59,8 +59,8 @@ app.post("/preferences", setPreferences);
 app.post("/notifications", sendNotification);
 app.get("/notifications/:userId", getNotifications);
 
-// Marcar notificación como leída (Botón X del frontend)
-app.post("/notifications/:id/read", markNotificationAsRead); 
+//marcar notifcacion como leida
+app.patch("/notifications/:id/read", markNotificationAsRead);
 
 // -------------------------------------------------
 // 4. SERVER
