@@ -147,6 +147,34 @@ export const sendNotification = async (c: Context) => {
   }
 };
 
+
+// ----------------------------------------
+// ⭐ NUEVA FUNCIÓN: MARCAR COMO LEÍDO (PARA EL BOTÓN 'X')
+// ----------------------------------------
+
+// POST /notifications/:id/read
+export const markNotificationAsRead = async (c: Context) => {
+  try {
+    const notificationId = c.req.param("id");
+
+    const result = await Notification.updateOne(
+      { _id: notificationId },
+      { $set: { read: true } } // Cambiar 'read' a true
+    );
+
+    if (result.matchedCount === 0) {
+      return c.json({ error: "Notificación no encontrada" }, 404);
+    }
+    
+    // El frontend necesita esta respuesta 200 para actualizar la UI
+    return c.json({ status: "success", message: "Notificación marcada como leída" });
+  } catch (error) {
+    console.error("Error marcando notificación como leída:", error);
+    return c.json({ error: "Error interno del servidor" }, 500);
+  }
+};
+
+
 // ----------------------------------------
 // 4. NUEVA FUNCIÓN PARA EL REGISTRO (INTEGRACIÓN PAREJA 1)
 // ----------------------------------------
@@ -174,6 +202,7 @@ export const initPreferences = async (c: Context) => {
         $setOnInsert: { 
           userId, 
           email: userEmail, 
+          globalEmailNotifications: true, // Asegurar que está inicializado
           emailNotifications: true // Por defecto activadas
         } 
       },
@@ -190,13 +219,9 @@ export const initPreferences = async (c: Context) => {
 };
 
 // ----------------------------------------
-// 4. HANDLER DE EVENTOS DE REDIS (LÓGICA ASÍNCRONA)
+// 5. HANDLER DE EVENTOS DE REDIS (CORREGIDO FINAL)
 // ----------------------------------------
 
-/**
- * Función que recibe y procesa eventos de Redis (Publicados por otros servicios).
- * Usa las preferencias del usuario para decidir si enviar notificaciones.
- */
 export const handleRedisEvent = async (channel: string, message: string): Promise<void> => {
   let eventData;
   try {
@@ -206,49 +231,55 @@ export const handleRedisEvent = async (channel: string, message: string): Promis
     return;
   }
   
-  // El ID del usuario afectado por el evento (varía según el evento)
-  // Intentamos obtener el ID del usuario del evento.
+  // -----------------------------------------------------
+  // 1. ADAPTADOR PARA GROUPS (Pareja 2)
+  // -----------------------------------------------------
+  if (channel === 'group-events') {
+    const internalEventType = eventData.type; // ej: "group.member.added"
+    const payload = eventData.payload;        // Datos reales
+
+    channel = internalEventType; 
+    eventData = payload; 
+  }
+  // -----------------------------------------------------
+
+  // El ID del usuario afectado
   const affectedUserId = eventData.userId || eventData.memberId || eventData.targetUserId;
+  
   if (!affectedUserId) {
-    console.warn(`Evento ${channel} sin userId/memberId/targetUserId definido. Ignorando.`);
+    console.warn(`Evento ${channel} sin userId definido. Ignorando.`);
     return;
   }
 
   try {
-    // 1. BUSCAR PREFERENCIAS DEL USUARIO
-    // Usamos el casting 'as IPreference | null' para que TS sepa qué buscar
+    // 2. BUSCAR PREFERENCIAS DEL USUARIO
     const preference = await Preferences.findOne({ userId: affectedUserId }) as (IPreferences | null);
 
     if (!preference) {
-        console.warn(`Usuario ${affectedUserId} no tiene preferencias. Ignorando eventos de notificación inmediatos.`);
-        // Podríamos inicializar aquí, pero idealmente lo hace users-service vía /init
+        console.warn(`Usuario ${affectedUserId} no tiene preferencias. Ignorando.`);
         return; 
     }
     
-    // 2. LÓGICA POR TIPO DE EVENTO
-    
+    // 3. LÓGICA POR TIPO DE EVENTO
     switch (channel) {
       case 'expense.created': {
         const { expense, receivers } = eventData;
-        // Asumimos que el evento pasa el ID del usuario afectado en la propiedad 'affectedUserId'
         const isReceiver = receivers.includes(affectedUserId); 
         
-        // Lógica de negocio: Solo notificamos a los que tienen que pagar Y si tienen la preferencia activada
-        if (isReceiver && preference.alertOnExpenseCreation) {
+        // ✅ CORREGIDO: Usamos 'globalEmailNotifications' (la que te pedía el error)
+        if (isReceiver && preference.globalEmailNotifications) {
           
-          const notificationMessage = `¡Nuevo gasto! ${expense.payerName} ha pagado ${expense.amount} ${expense.currency} en '${expense.groupName}'. Revisa tu saldo.`;
+          const notificationMessage = `¡Nuevo gasto! ${expense.payerName} ha pagado ${expense.amount} en '${expense.groupName}'.`;
 
-          // Guardar Notificación In-App (para la campana)
+          // A) Guardar en la Campana
           await createNotification(affectedUserId, notificationMessage);
           
-          // Enviar Email, SOLO si las notificaciones globales están ON
-          if (preference.globalEmailNotifications) {
-            await sendEmail(
-              preference.email, 
-              `[Odebt] Deuda pendiente en ${expense.groupName}`, 
-              `Hola, se ha registrado un nuevo gasto. Revisa la aplicación para ver cómo te afecta.`
-            );
-          }
+          // B) Enviar Email
+          await sendEmail(
+            preference.email, 
+            `[Odebt] Deuda pendiente en ${expense.groupName}`, 
+            `Hola, se ha registrado un nuevo gasto. Revisa la aplicación.`
+          );
         }
         break;
       }
@@ -256,32 +287,33 @@ export const handleRedisEvent = async (channel: string, message: string): Promis
       case 'group.member.added': {
         const { groupName, invitedUserEmail } = eventData;
         
-        // Esta notificación es para el usuario INVITADO (cuyo email viene en el evento)
+        // ✅ CORREGIDO: Usamos 'globalEmailNotifications'
         if (preference.globalEmailNotifications) {
-           await sendEmail(
-             invitedUserEmail,
-             `¡Has sido invitado a ${groupName}!`,
-             `<p>Felicidades, has sido añadido al grupo <b>${groupName}</b> en Odebt.</p>
-              <p>Haz click <a href="#">aquí</a> para empezar a dividir gastos.</p>`
-           );
+           // A) Enviar Email
+           if (invitedUserEmail) {
+             await sendEmail(
+               invitedUserEmail,
+               `¡Has sido invitado a ${groupName}!`,
+               `<p>Has sido añadido al grupo <b>${groupName}</b> en Odebt.</p>`
+             );
+           }
         }
+
+        // B) SIEMPRE guardamos en la campana
+        await createNotification(affectedUserId, `Te han añadido al grupo ${groupName}`);
+        
         break;
       }
 
       case 'user.deleted': {
-        // Lógica del patrón SAGA (Nivel 10): Tarea de compensación
-        console.warn(`[SAGA] Recibido evento user.deleted para ID: ${affectedUserId}. Iniciando limpieza...`);
-        
-        // 1. Eliminar datos privados (preferencias y notificaciones)
+        console.warn(`[SAGA] Recibido evento user.deleted para ID: ${affectedUserId}.`);
         await Preferences.deleteOne({ userId: affectedUserId });
         await Notification.deleteMany({ userId: affectedUserId });
-        
-        console.log(`[SAGA] Preferencias y notificaciones del usuario ${affectedUserId} eliminadas correctamente.`);
         break;
       }
 
       default:
-        console.warn(`Evento desconocido recibido en el canal: ${channel}`);
+        console.warn(`Evento no manejado: ${channel}`);
     }
 
   } catch (error) {
