@@ -18,19 +18,19 @@ export const initRedisSubscriber = (eventHandler: (channel: string, message: str
 
   subscriber.subscribe(...channels, (err, count) => {
     if (err) {
-      console.error('❌ Error fatal al suscribirse a canales de Redis:', err);
+      console.error('Error fatal al suscribirse a canales de Redis:', err);
       return;
     }
-    console.log(`✅ Suscrito correctamente a ${count} canales: ${channels.join(', ')}`);
+    console.log(`Suscrito correctamente a ${count} canales: ${channels.join(', ')}`);
   });
 
   subscriber.on('message', (channel, message) => {
     // Log para depurar lo que llega realmente
-    console.log(`📡 Recibido evento [${channel}]: ${message}`);
+    console.log(`Recibido evento [${channel}]: ${message}`);
     eventHandler(channel, message);
   });
   
   subscriber.on('error', (err) => {
-    console.error('❌ Error de conexión con Redis:', err);
+    console.error('Error de conexión con Redis:', err);
   });
 };

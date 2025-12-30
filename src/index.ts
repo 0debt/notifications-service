@@ -2,8 +2,8 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { connectDB } from "./config/mongo.ts";
 import { initRedisSubscriber } from "./config/redisSubscriber.ts";
-import { startWeeklySummaryJob } from "./services/summaryService.ts"; 
-import { sendEmail } from "./services/emailService.ts";
+import { startWeeklySummaryJob } from "./services/summaryService"; 
+import { sendEmail } from "./services/emailService";
 import { 
   getPreferences, 
   setPreferences, 
@@ -12,7 +12,7 @@ import {
   initPreferences,
   handleRedisEvent,
   markNotificationAsRead 
-} from "./controllers/notificationsControllers.ts";
+} from "./controllers/notificationsControllers";
 
 const app = new Hono();
 

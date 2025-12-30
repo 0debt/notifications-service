@@ -11,12 +11,16 @@
     "@types/bun": "latest",
     "@types/ioredis": "^5.0.0",
     "@types/node": "^24.10.1",
-    "@types/opossum": "^8.1.9"
+    "@types/opossum": "^8.1.9",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3"
   },
   "peerDependencies": {
     "typescript": "^5"
   },
   "dependencies": {
+    "@react-email/components": "^1.0.3",
+    "@react-email/render": "^2.0.1",
     "@types/node-cron": "^3.0.11",
     "bottleneck": "^2.19.5",
     "hono": "^4.10.6",
@@ -25,6 +29,7 @@
     "mongoose": "^9.0.0",
     "node-cron": "^4.2.1",
     "opossum": "^9.0.0",
+    "react": "^19.2.3",
     "resend": "^6.5.2"
   }
 }

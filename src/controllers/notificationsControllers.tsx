@@ -7,6 +7,12 @@ import Bottleneck from "bottleneck";
 // 👇 Importamos la plantilla de Alba
 import { getEmailTemplate } from "../notifications/email-template";
 import { Resend } from "resend";
+// 👇 Imports para React Email
+import { render } from "@react-email/render";
+import WelcomeEmail from "../emails/WelcomeEmail";      
+import { NewExpenseEmail } from "../emails/NewExpenseEmail"; 
+import { GroupInvitationEmail } from "../emails/GroupInvitationEmail";
+import React from "react";
 
 // ----------------------------------------
 // 1. CONFIGURACIÓN
@@ -258,29 +264,30 @@ export const handleRedisEvent = async (channel: string, message: string): Promis
     
     switch (channel) {
       case 'expense.created': {
-        const { expense } = eventData;
+        const { expense, targetUserId } = eventData; // Asegúrate de extraer targetUserId si lo guardaste en el adaptador
         
-        // Lógica adaptada: Notificamos al usuario afectado (en este caso el pagador, 
-        // porque es el único ID que tenemos gracias a Expenses).
         if (preference.globalEmailNotifications) {
           
+          // 1. Guardar en Mongo (Esto lo dejamos igual)
           const notificationMessage = `✅ Gasto registrado: ${expense.amount}€ en ${expense.groupName}.`;
-
-          // A) Campana
           await createNotification(affectedUserId, notificationMessage);
           
-          // B) Email con Plantilla
-          const htmlContent = getEmailTemplate(
-            "Gasto Registrado Correctamente", 
-            `<p>Has registrado un gasto de <b>${expense.amount} ${expense.currency}</b>.</p>
-             <p>Concepto: <i>${expense.description}</i></p>
-             <p>Grupo: ${expense.groupName}</p>`, 
-            "Ver Gasto"
+          // 2. Generar el HTML con React Email (EL CAMBIO CLAVE) 🎨
+          // Renderizamos el componente pasándole los datos limpios
+          const htmlContent = await render(
+            <NewExpenseEmail 
+              payerName={expense.payerName}
+              amount={expense.amount}
+              description={expense.description}
+              owedAmount={0} // Ojo: Expenses no te manda cuánto debes, pon 0 o calcula si puedes
+            />
           );
+          
 
+          // 3. Enviar
           await sendEmail(
             preference.email, 
-            `[Odebt] Gasto creado en ${expense.groupName}`, 
+            `[0debt] Nuevo gasto en ${expense.groupName}`, 
             htmlContent
           );
         }
@@ -292,15 +299,15 @@ export const handleRedisEvent = async (channel: string, message: string): Promis
         
         if (preference.globalEmailNotifications) {
            if (invitedUserEmail) {
-             const htmlContent = getEmailTemplate(
-               "¡Bienvenido al Grupo!", 
-               `<p>Has sido invitado a unirte al grupo <b>${groupName}</b>.</p>`, 
-               "Ir al Grupo"
+             
+             // ✨ AHORA SÍ: Usamos React Email
+             const htmlContent = await render(
+               <GroupInvitationEmail groupName={groupName} />
              );
 
              await sendEmail(
                invitedUserEmail,
-               `¡Has sido invitado a ${groupName}!`,
+               `¡Te han añadido a ${groupName}!`,
                htmlContent
              );
            }
