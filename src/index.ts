@@ -3,6 +3,7 @@ import { cors } from "hono/cors";
 import { connectDB } from "./config/mongo.ts";
 import { initRedisSubscriber } from "./config/redisSubscriber.ts";
 import { startWeeklySummaryJob } from "./services/summaryService.ts"; 
+import { sendEmail } from "./services/emailService.ts";
 import { 
   getPreferences, 
   setPreferences, 
@@ -61,6 +62,35 @@ app.get("/notifications/:userId", getNotifications);
 
 //marcar notifcacion como leida
 app.patch("/notifications/:id/read", markNotificationAsRead);
+
+//email de bienvenida
+app.post("/email/welcome", async (c) => {
+  try {
+    const body = await c.req.json(); // Así se leen datos en Hono
+    const { email, name } = body;
+
+    if (!email || !name) {
+      return c.json({ error: 'Faltan datos: email y name' }, 400);
+    }
+
+    // HTML sencillo de bienvenida
+    const htmlContent = `
+      <h1>¡Bienvenido a 0debt, ${name}! 🚀</h1>
+      <p>Gracias por unirte a nosotros.</p>
+    `;
+
+    // Usamos tu servicio (recuerda cambiar el 'from' si tienes dominio propio)
+    const result = await sendEmail(email, '¡Bienvenido a la familia!', htmlContent);
+
+    if (result.success) {
+      return c.json({ message: 'Correo enviado correctamente' }, 200);
+    } else {
+      return c.json({ error: 'Error enviando email', details: result.error }, 500);
+    }
+  } catch (error) {
+    return c.json({ error: 'Error interno del servidor' }, 500);
+  }
+});
 
 // -------------------------------------------------
 // 4. SERVER
