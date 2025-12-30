@@ -1,0 +1,23 @@
+# --- .dockerignore ---
+
+# 1. Ignoramos node_modules del Mac para que Docker instale los suyos (Linux)
+node_modules
+
+# 2. SEGURIDAD: Que no se copien tus claves al contenedor
+.env
+.env.*
+
+# 3. Archivos de Git y configuración que no sirven en producción
+.git
+.gitignore
+Dockerfile
+docker-compose.yml
+README.md
+
+# 4. Basura y temporales
+dist
+coverage
+*.log
+.DS_Store
+
+# OJO: NO ponemos bun.lockb aquí, porque ese SÍ queremos que se copie.
