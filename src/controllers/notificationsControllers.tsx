@@ -299,55 +299,20 @@ export const handleRedisEvent = async (channel: string, message: string): Promis
         
         if (preference.globalEmailNotifications) {
            if (invitedUserEmail) {
-             
-             // ✨ AHORA SÍ: Usamos React Email
-             const htmlContent = await render(
-               <GroupInvitationEmail groupName={groupName} />
+             const htmlContent = getEmailTemplate(
+               "¡Bienvenido al Grupo!", 
+               `<p>Has sido invitado a unirte al grupo <b>${groupName}</b>.</p>`, 
+               "Ir al Grupo"
              );
 
              await sendEmail(
                invitedUserEmail,
-               `¡Te han añadido a ${groupName}!`,
+               `¡Has sido invitado a ${groupName}!`,
                htmlContent
              );
            }
         }
         await createNotification(affectedUserId, `Te han añadido al grupo ${groupName}`);
-        break;
-      }
-      // -----------------------------------------------------
-      // C. NUEVO USUARIO REGISTRADO (Pareja 1)
-      // -----------------------------------------------------
-      case 'user.created': {
-        // Estructura esperada: { type: 'user.created', data: { id: '...', email: '...', name: '...' } }
-        // Nota: A veces mandan 'payload' o 'data', ajusta según lo que veas en los logs.
-        const userData = eventData.data || eventData.payload || eventData; 
-        
-        const { id, email, name, username } = userData;
-        const targetEmail = email; 
-        const targetName = name || username || "Usuario";
-        const targetId = id || userData.userId;
-
-        console.log(`👤 Nuevo usuario detectado: ${targetName} (${targetEmail})`);
-
-        if (targetEmail && targetId) {
-          // 1. Inicializamos sus preferencias automáticamente
-          await Preferences.updateOne(
-            { userId: targetId },
-            { $setOnInsert: { userId: targetId, email: targetEmail, globalEmailNotifications: true } },
-            { upsert: true }
-          );
-
-          // 2. Enviamos el Welcome Email con React
-          // Asegúrate de importar WelcomeEmail arriba
-          const htmlContent = await render(<WelcomeEmail name={targetName} />);
-          
-          await sendEmail(
-            targetEmail,
-            "¡Bienvenido a 0debt! 🚀",
-            htmlContent
-          );
-        }
         break;
       }
 
