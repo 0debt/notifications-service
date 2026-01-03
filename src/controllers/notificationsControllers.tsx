@@ -191,10 +191,6 @@ export const initPreferences = async (c: Context) => {
 // ----------------------------------------
 // 5. HANDLER DE EVENTOS DE REDIS
 // ----------------------------------------
-// ----------------------------------------
-// 5. HANDLER DE EVENTOS DE REDIS (ADAPTADO A TODOS)
-// ----------------------------------------
-
 export const handleRedisEvent = async (channel: string, message: string): Promise<void> => {
   let eventData;
   try {
@@ -205,7 +201,7 @@ export const handleRedisEvent = async (channel: string, message: string): Promis
   }
   
   // -----------------------------------------------------
-  // A. ADAPTADOR PARA EXPENSES (Pareja 3)
+  // A. ADAPTADOR PARA EXPENSES
   // -----------------------------------------------------
   // Ellos publican en 'events' con estructura { type: 'expense.created', data: {...} }
   if (channel === 'events') {
@@ -235,7 +231,7 @@ export const handleRedisEvent = async (channel: string, message: string): Promis
   }
 
   // -----------------------------------------------------
-  // B. ADAPTADOR PARA GROUPS (Pareja 2)
+  // B. ADAPTADOR PARA GROUPS
   // -----------------------------------------------------
   if (channel === 'group-events') {
     const internalEventType = eventData.type; 
@@ -266,20 +262,20 @@ export const handleRedisEvent = async (channel: string, message: string): Promis
       case 'expense.created': {
         const { expense, targetUserId } = eventData; // Asegúrate de extraer targetUserId si lo guardaste en el adaptador
         
-        if (preference.globalEmailNotifications) {
+        if (preference.globalEmailNotifications && preference.alertOnExpenseCreation) {
           
-          // 1. Guardar en Mongo (Esto lo dejamos igual)
-          const notificationMessage = `✅ Gasto registrado: ${expense.amount}€ en ${expense.groupName}.`;
+          // 1. Guardar en Mongo
+          const notificationMessage = `Gasto registrado: ${expense.amount}€ en ${expense.groupName}.`;
           await createNotification(affectedUserId, notificationMessage);
           
-          // 2. Generar el HTML con React Email (EL CAMBIO CLAVE) 🎨
+          // 2. Generar el HTML con React Email
           // Renderizamos el componente pasándole los datos limpios
           const htmlContent = await render(
             <NewExpenseEmail 
               payerName={expense.payerName}
               amount={expense.amount}
               description={expense.description}
-              owedAmount={0} // Ojo: Expenses no te manda cuánto debes, pon 0 o calcula si puedes
+              owedAmount={0} // Expenses no te manda cuánto debes, pon 0 o calcula si puedes
             />
           );
           
@@ -297,7 +293,7 @@ export const handleRedisEvent = async (channel: string, message: string): Promis
       case 'group.member.added': {
         const { groupName, invitedUserEmail } = eventData;
         
-        if (preference.globalEmailNotifications) {
+        if (preference.globalEmailNotifications && preference.alertOnNewGroup) {
            if (invitedUserEmail) {
              const htmlContent = getEmailTemplate(
                "¡Bienvenido al Grupo!", 
@@ -316,15 +312,28 @@ export const handleRedisEvent = async (channel: string, message: string): Promis
         break;
       }
 
-      case 'user.deleted': {
-        console.warn(`[SAGA] Recibido evento user.deleted para ID: ${affectedUserId}.`);
-        await Preferences.deleteOne({ userId: affectedUserId });
-        await Notification.deleteMany({ userId: affectedUserId });
+      case 'balance.changed': {
+        const { groupName } = eventData;
+        
+        if (preference.globalEmailNotifications && preference.alertOnBalanceChange) {
+           const html = getEmailTemplate(
+             "Tu Balance ha Cambiado",
+             `<p>Hola,</p>
+              <p>Tu balance en el grupo <b>${groupName}</b> ha cambiado.</p>
+              <p>Entra en la app para ver los detalles.</p>`,
+             "Cambio de balance"
+           );
+
+           await sendEmail(
+             preference.email,
+             `[Odebt] Tu balance ha cambiado en ${groupName}`,
+             html
+           );
+        }       
         break;
       }
 
       default:
-        // Ignoramos otros eventos de 'events' que no sean expense.created
         break;
     }
 

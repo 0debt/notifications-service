@@ -15,6 +15,7 @@ export interface IPreferences extends Document {
   // 3. Lógica para Alertas Inmediatas (Event-Driven)
   alertOnExpenseCreation: boolean;                     // Recibir alerta inmediata cuando se crea un gasto (Usado en handleRedisEvent)
   alertOnBalanceChange: boolean;                       // Recibir alerta cuando su deuda cambia
+  alertOnNewGroup: boolean;                            // Recibir alerta cuando se le añade a un nuevo grupo
   alertOnLowBudget: boolean;                           // Recibir alerta de presupuesto bajo (si Analytics lo publica)
 }
 
