@@ -38,8 +38,8 @@ export const WelcomeEmail = ({ name }: WelcomeEmailProps) => {
               Nosotros nos encargamos de las matemáticas.
             </Text>
             
-            <Button href="https://www.0debt.xyz/dashboard" style={button}>
-              Ir a mi Dashboard
+            <Button href="https://www.0debt.xyz/groups" style={button}>
+              Ir a grupos
             </Button>
           </Section>
 

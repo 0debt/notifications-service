@@ -200,6 +200,7 @@ export const handleRedisEvent = async (channel: string, message: string): Promis
         // Transformamos sus datos a nuestra estructura con nombres reales
         eventData = {
             expense: {
+                groupId: rawData.groupId,
                 groupName,
                 payerName,
                 amount: rawData.amount,
@@ -283,6 +284,7 @@ export const handleRedisEvent = async (channel: string, message: string): Promis
               payerName={expense.payerName}
               amount={expense.amount}
               description={expense.description}
+              groupId={expense.groupId}
               owedAmount={0} // Expenses no te manda cuánto debes, pon 0 o calcula si puedes
             />
           );

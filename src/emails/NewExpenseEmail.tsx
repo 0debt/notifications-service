@@ -18,6 +18,7 @@ interface NewExpenseEmailProps {
   payerName: string;
   amount: number;
   description: string;
+  groupId: string;
   owedAmount?: number;
 }
 
@@ -26,6 +27,7 @@ export const NewExpenseEmail = ({
   payerName,
   amount,
   description,
+  groupId,
   owedAmount = 0,
 }: NewExpenseEmailProps) => {
   return (
@@ -57,7 +59,7 @@ export const NewExpenseEmail = ({
           </Section>
 
           <Section style={buttonContainer}>
-            <Button href="https://www.0debt.xyz" style={button}>
+            <Button href={`https://www.0debt.xyz/expenses?group=${groupId}`} style={button}>
               Ver Gasto en la App
             </Button>
           </Section>
