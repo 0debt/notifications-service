@@ -188,7 +188,7 @@ export const handleRedisEvent = async (channel: string, message: string): Promis
         // Obtener nombre del pagador desde users-service (endpoint interno)
         let payerName = "Alguien";
         try {
-            const userRes = await fetch(`${USERS_SERVICE_URL}/api/v1/internal/users/${rawData.payerId}`);
+            const userRes = await fetch(`${USERS_SERVICE_URL}/api/v1/users/internal/users/${rawData.payerId}`);
             if (userRes.ok) {
                 const user = await userRes.json();
                 payerName = user.name || payerName;
