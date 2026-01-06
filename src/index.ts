@@ -5,6 +5,7 @@ import { initRedisSubscriber } from "./config/redisSubscriber.ts";
 import { startWeeklySummaryJob } from "./services/summaryService"; 
 import { sendEmail } from "./services/emailService";
 import { render } from "@react-email/render";
+import React from "react";
 import WelcomeEmail from "./emails/WelcomeEmail";
 import { 
   getPreferences, 
@@ -76,7 +77,7 @@ app.post("/email/welcome", async (c) => {
     }
 
     // Usamos el componente React Email para un email bonito y consistente
-    const htmlContent = await render(<WelcomeEmail name={name} />);
+    const htmlContent = await render(React.createElement(WelcomeEmail, { name }));
 
     // Usamos el servicio de email
     const result = await sendEmail(email, '¡Bienvenido a 0debt!', htmlContent);
