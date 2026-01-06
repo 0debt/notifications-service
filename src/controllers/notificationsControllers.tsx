@@ -188,7 +188,7 @@ export const handleRedisEvent = async (channel: string, message: string): Promis
         // Obtener nombre del pagador desde users-service (endpoint interno)
         let payerName = "Alguien";
         try {
-            const userRes = await fetch(`${USERS_SERVICE_URL}/internal/users/${rawData.payerId}`);
+            const userRes = await fetch(`${USERS_SERVICE_URL}/api/v1/internal/users/${rawData.payerId}`);
             if (userRes.ok) {
                 const user = await userRes.json();
                 payerName = user.name || payerName;
@@ -299,17 +299,18 @@ export const handleRedisEvent = async (channel: string, message: string): Promis
       }
 
       case 'group.member.added': {
-        const { groupName, invitedUserEmail } = eventData;
+        const { groupName, invitedUserEmail, email } = eventData;
+        const recipientEmail = invitedUserEmail || email; // Compatible con ambos campos
         
         if (preference.globalEmailNotifications && preference.alertOnNewGroup) {
-           if (invitedUserEmail) {
+           if (recipientEmail) {
              // Usamos el componente React Email para consistencia de estilo
              const htmlContent = await render(
                <GroupInvitationEmail groupName={groupName} />
              );
 
              await sendEmail(
-               invitedUserEmail,
+               recipientEmail,
                `¡Has sido invitado a ${groupName}!`,
                htmlContent
              );
