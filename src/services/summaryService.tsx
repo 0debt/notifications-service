@@ -62,9 +62,9 @@ const processWeeklySummaries = async () => {
         htmlContent // El HTML bonito generado por React
       );
 
-      // 5. Opcional: Podríamos marcar 'lastSummarySent' en las preferencias
-      // pref.lastSummarySent = new Date();
-      // await pref.save();
+      // 5. Actualizar fecha del último resumen enviado
+      pref.lastSummarySent = new Date();
+      await pref.save();
     }
     
     console.log('Tarea de resúmenes finalizada correctamente.');

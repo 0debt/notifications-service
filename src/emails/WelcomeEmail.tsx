@@ -38,7 +38,7 @@ export const WelcomeEmail = ({ name }: WelcomeEmailProps) => {
               Nosotros nos encargamos de las matemáticas.
             </Text>
             
-            <Button href="https://0debt.xyz/dashboard" style={button}>
+            <Button href="https://www.0debt.xyz/dashboard" style={button}>
               Ir a mi Dashboard
             </Button>
           </Section>

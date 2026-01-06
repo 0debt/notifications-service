@@ -50,7 +50,7 @@ export const WeeklySummaryEmail = ({ notifications }: WeeklySummaryProps) => {
           </Text>
           
           <Section style={buttonContainer}>
-            <Link href="https://0debt.xyz" style={button}>
+            <Link href="https://www.0debt.xyz" style={button}>
               Ir a 0debt
             </Link>
           </Section>

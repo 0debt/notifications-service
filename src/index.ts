@@ -4,6 +4,8 @@ import { connectDB } from "./config/mongo.ts";
 import { initRedisSubscriber } from "./config/redisSubscriber.ts";
 import { startWeeklySummaryJob } from "./services/summaryService"; 
 import { sendEmail } from "./services/emailService";
+import { render } from "@react-email/render";
+import WelcomeEmail from "./emails/WelcomeEmail";
 import { 
   getPreferences, 
   setPreferences, 
@@ -66,24 +68,21 @@ app.patch("/notifications/:id/read", markNotificationAsRead);
 //email de bienvenida
 app.post("/email/welcome", async (c) => {
   try {
-    const body = await c.req.json(); // Así se leen datos en Hono
+    const body = await c.req.json();
     const { email, name } = body;
 
     if (!email || !name) {
       return c.json({ error: 'Faltan datos: email y name' }, 400);
     }
 
-    // HTML sencillo de bienvenida
-    const htmlContent = `
-      <h1>¡Bienvenido a 0debt, ${name}! 🚀</h1>
-      <p>Gracias por unirte a nosotros.</p>
-    `;
+    // Usamos el componente React Email para un email bonito y consistente
+    const htmlContent = await render(<WelcomeEmail name={name} />);
 
-    // Usamos tu servicio (recuerda cambiar el 'from' si tienes dominio propio)
-    const result = await sendEmail(email, '¡Bienvenido a la familia!', htmlContent);
+    // Usamos el servicio de email
+    const result = await sendEmail(email, '¡Bienvenido a 0debt!', htmlContent);
 
     if (result.success) {
-      return c.json({ message: 'Correo enviado correctamente' }, 200);
+      return c.json({ message: 'Email de bienvenida enviado' }, 200);
     } else {
       return c.json({ error: 'Error enviando email', details: result.error }, 500);
     }

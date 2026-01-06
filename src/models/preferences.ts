@@ -38,6 +38,7 @@ const PreferencesSchema: Schema = new Schema({
   // Immediate Alerts logic
   alertOnExpenseCreation: { type: Boolean, default: true },
   alertOnBalanceChange: { type: Boolean, default: true },
+  alertOnNewGroup: { type: Boolean, default: true },
   alertOnLowBudget: { type: Boolean, default: true },
 });
 

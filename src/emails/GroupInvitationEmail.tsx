@@ -34,7 +34,7 @@ export const GroupInvitationEmail = ({ groupName }: GroupInvitationEmailProps) =
               Ahora podrás ver los gastos compartidos, añadir tickets y ver cuánto debes (o cuánto te deben).
             </Text>
             
-            <Button href="https://0debt.xyz/dashboard" style={button}>
+            <Button href="https://www.0debt.xyz/dashboard" style={button}>
               Ir al Grupo
             </Button>
           </Section>

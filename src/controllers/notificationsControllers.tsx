@@ -3,64 +3,26 @@ import type { Context } from "hono";
 import Notification from "../models/notification";
 import Preferences, { type IPreferences } from "../models/preferences";
 import { emailBreaker } from "../config/circuitBreaker"; 
-import Bottleneck from "bottleneck";
 // 👇 Importamos la plantilla de Alba
 import { getEmailTemplate } from "../notifications/email-template";
-import { Resend } from "resend";
 // 👇 Imports para React Email
 import { render } from "@react-email/render";
 import WelcomeEmail from "../emails/WelcomeEmail";      
 import { NewExpenseEmail } from "../emails/NewExpenseEmail"; 
 import { GroupInvitationEmail } from "../emails/GroupInvitationEmail";
 import React from "react";
+import { redisClient } from "../config/redis";
+import { sendEmail } from "../services/emailService";
+
+const USERS_SERVICE_URL = process.env.USERS_SERVICE_URL || 'http://users-service:3000';
 
 // ----------------------------------------
 // 1. CONFIGURACIÓN
 // ----------------------------------------
-const apiKey = process.env.RESEND_API_KEY;
-
-if (!apiKey) {
-  console.warn("ADVERTENCIA: RESEND_API_KEY no está definida en el .env");
-}
-
-const resend = new Resend(apiKey);
-
-// Rate Limiter: Máximo 1 email cada 600ms
-const limiter = new Bottleneck({
-  minTime: 600, 
-  maxConcurrent: 1 
-});
 
 // ----------------------------------------
 // 2. FUNCIONES AUXILIARES
 // ----------------------------------------
-
-/**
- * Envía un email usando Resend + Circuit Breaker + Rate Limiter
- */
-const sendEmail = async (to: string, subject: string, htmlContent: string) => {
- try {
-    const data = await limiter.schedule(async () => {
-        // Llamada directa a Resend protegida
-        const { data, error } = await resend.emails.send({
-            from: "0debt Notificaciones <noreply@mail.0debt.xyz>",
-            to: [to],
-            subject: subject,
-            html: htmlContent, // Aquí va el HTML bonito
-        });
-        
-        if (error) throw new Error(error.message);
-        return data;
-    });
-
-    console.log(`Email enviado a ${to}. ID: ${data?.id}`);
-    return data;
-
-  } catch (err: any) {
-    console.error("Excepción intentando enviar email:", err.message);
-    return null; 
-  }
-};
 
 const createNotification = async (userId: string, message: string) => {
   try {
@@ -211,13 +173,37 @@ export const handleRedisEvent = async (channel: string, message: string): Promis
         channel = 'expense.created'; // Re-etiquetamos el canal para nuestro switch
         const rawData = eventData.data;
 
-        // Transformamos sus datos feos a nuestra estructura bonita
+        // Obtener nombre del grupo desde Redis cache (groups-service lo guarda ahí)
+        let groupName = `Grupo ${rawData.groupId}`;
+        try {
+            const cachedSummary = await redisClient.get(`group_summary:${rawData.groupId}`);
+            if (cachedSummary) {
+                const summary = JSON.parse(cachedSummary);
+                groupName = summary.name || groupName;
+            }
+        } catch (e) {
+            console.error('Error obteniendo nombre del grupo desde Redis:', e);
+        }
+
+        // Obtener nombre del pagador desde users-service (endpoint interno)
+        let payerName = "Alguien";
+        try {
+            const userRes = await fetch(`${USERS_SERVICE_URL}/internal/users/${rawData.payerId}`);
+            if (userRes.ok) {
+                const user = await userRes.json();
+                payerName = user.name || payerName;
+            }
+        } catch (e) {
+            console.error('Error obteniendo nombre del pagador:', e);
+        }
+
+        // Transformamos sus datos a nuestra estructura con nombres reales
         eventData = {
             expense: {
-                groupName: `Grupo ${rawData.groupId}`, // No mandan nombre, usamos ID
-                payerName: "Tú", // Asumimos que notificamos al pagador
+                groupName,
+                payerName,
                 amount: rawData.amount,
-                currency: "EUR", // Asumimos EUR
+                currency: rawData.currency || "EUR",
                 description: rawData.description
             },
             // IMPORTANTE: Como no mandan receivers, ponemos al payerId como objetivo
@@ -238,6 +224,28 @@ export const handleRedisEvent = async (channel: string, message: string): Promis
     const payload = eventData.payload;        
     channel = internalEventType; 
     eventData = payload; 
+  }
+  // -----------------------------------------------------
+
+  // -----------------------------------------------------
+  // C. HANDLER PARA USER.DELETED (limpieza de datos)
+  // -----------------------------------------------------
+  if (channel === 'user.deleted') {
+    const { userId } = eventData;
+    console.log(`Limpiando datos del usuario eliminado: ${userId}`);
+
+    try {
+      // Eliminar preferencias del usuario
+      await Preferences.deleteOne({ userId });
+
+      // Eliminar notificaciones del usuario
+      await Notification.deleteMany({ userId });
+
+      console.log(`Datos del usuario ${userId} eliminados correctamente`);
+    } catch (error) {
+      console.error(`Error limpiando datos del usuario ${userId}:`, error);
+    }
+    return; // Terminamos aquí, no necesitamos procesar más
   }
   // -----------------------------------------------------
 
@@ -295,10 +303,9 @@ export const handleRedisEvent = async (channel: string, message: string): Promis
         
         if (preference.globalEmailNotifications && preference.alertOnNewGroup) {
            if (invitedUserEmail) {
-             const htmlContent = getEmailTemplate(
-               "¡Bienvenido al Grupo!", 
-               `<p>Has sido invitado a unirte al grupo <b>${groupName}</b>.</p>`, 
-               "Ir al Grupo"
+             // Usamos el componente React Email para consistencia de estilo
+             const htmlContent = await render(
+               <GroupInvitationEmail groupName={groupName} />
              );
 
              await sendEmail(

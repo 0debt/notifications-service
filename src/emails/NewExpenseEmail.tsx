@@ -57,7 +57,7 @@ export const NewExpenseEmail = ({
           </Section>
 
           <Section style={buttonContainer}>
-            <Button href="https://0debt.xyz" style={button}>
+            <Button href="https://www.0debt.xyz" style={button}>
               Ver Gasto en la App
             </Button>
           </Section>
