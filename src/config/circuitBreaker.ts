@@ -2,7 +2,7 @@ import CircuitBreaker from 'opossum';
 import { Resend } from 'resend';
 
 // -----------------------------------------------------------------
-// 1. CONFIGURACIÓN E INICIALIZACIÓN DE RESEND (Se mueve aquí)
+// 1. CONFIGURACIÓN E INICIALIZACIÓN DE RESEND
 // -----------------------------------------------------------------
 const apiKey = process.env.RESEND_API_KEY;
 
@@ -52,7 +52,7 @@ const options = {
 export const emailBreaker = new CircuitBreaker(sendEmailFunction, options);
 
 // -----------------------------------------------------------------
-// 3. LISTENERS PARA LOGGING (Opcional, pero muy útil)
+// 3. LISTENERS PARA LOGGING
 // -----------------------------------------------------------------
 
 emailBreaker.on('open', () => console.error('CIRCUIT BREAKER: ABIERTO. Resend está fallando o muy lento.'));
@@ -63,7 +63,7 @@ emailBreaker.on('fallback', (error) => {
     ? error.message
     : String(error);
 
-console.log('🔵 CIRCUIT BREAKER: Usando fallback (el email no se envió).', errorMessage);
+console.log('CIRCUIT BREAKER: Usando fallback (el email no se envió).', errorMessage);
 });
 // NOTA: No necesitamos una función de fallback compleja porque en este caso, 
 // la acción de fallback es simplemente no enviar el email (ya está en el controller).

@@ -5,10 +5,10 @@ import Redis from "ioredis";
 const redisUrl = process.env.REDIS_URL;
 
 if (!redisUrl) {
-  throw new Error("❌ REDIS_URL no está definida en el .env");
+  throw new Error("REDIS_URL no está definida en el .env");
 }
 
-console.log("🔌 Conectando a Redis...");
+console.log("Conectando a Redis...");
 
 // 2. Creamos dos conexiones:
 // - una para enviar mensajes (si hiciera falta)
@@ -16,4 +16,4 @@ console.log("🔌 Conectando a Redis...");
 export const redisClient = new Redis(redisUrl);
 export const redisSubscriber = new Redis(redisUrl);
 
-console.log("✅ Conexión a Redis lista");
+console.log("Conexión a Redis lista");

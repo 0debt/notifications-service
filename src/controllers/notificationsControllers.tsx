@@ -17,11 +17,7 @@ import { sendEmail } from "../services/emailService";
 const USERS_SERVICE_URL = process.env.USERS_SERVICE_URL || 'http://users-service:3000';
 
 // ----------------------------------------
-// 1. CONFIGURACIÓN
-// ----------------------------------------
-
-// ----------------------------------------
-// 2. FUNCIONES AUXILIARES
+// FUNCIONES AUXILIARES
 // ----------------------------------------
 
 const createNotification = async (userId: string, message: string) => {
@@ -39,7 +35,7 @@ const createNotification = async (userId: string, message: string) => {
 };
 
 // ----------------------------------------
-// 3. HANDLERS / RUTAS
+// HANDLERS / RUTAS
 // ----------------------------------------
 
 export const getPreferences = async (c: Context) => {
@@ -269,7 +265,7 @@ export const handleRedisEvent = async (channel: string, message: string): Promis
     
     switch (channel) {
       case 'expense.created': {
-        const { expense, targetUserId } = eventData; // Asegúrate de extraer targetUserId si lo guardaste en el adaptador
+        const { expense, targetUserId } = eventData;
         
         if (preference.globalEmailNotifications && preference.alertOnExpenseCreation) {
           
@@ -285,7 +281,7 @@ export const handleRedisEvent = async (channel: string, message: string): Promis
               amount={expense.amount}
               description={expense.description}
               groupId={expense.groupId}
-              owedAmount={0} // Expenses no te manda cuánto debes, pon 0 o calcula si puedes
+              owedAmount={0}
             />
           );
           

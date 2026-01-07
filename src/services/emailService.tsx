@@ -4,7 +4,7 @@ import * as React from 'react'; // Necesario para los tipos de React
 
 // Verificación de seguridad
 if (!process.env.RESEND_API_KEY) {
-  throw new Error("❌ FALTA RESEND_API_KEY EN EL .ENV");
+  throw new Error("FALTA RESEND_API_KEY EN EL .ENV");
 }
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -23,16 +23,16 @@ export const sendEmail = async (
   try {
     // Preparamos el payload dinámicamente
     const emailPayload: any = {
-      from: '0debt App <noreply@mail.0debt.xyz>', // Recuerda cambiar esto cuando verifiques dominio
+      from: '0debt App <noreply@mail.0debt.xyz>',
       to: [to],
       subject: subject,
     };
 
-    // La Magia: Detectamos si es React o HTML String
+    // Detectamos si es React o HTML String
     if (typeof content === 'string') {
       emailPayload.html = content; // Es un string viejo
     } else {
-      emailPayload.react = content; // ¡Es un componente React! (Resend lo renderiza solo)
+      emailPayload.react = content; // Si es un componente React, Resend lo renderiza internamente
     }
 
     const { data, error } = await resend.emails.send(emailPayload);

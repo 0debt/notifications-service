@@ -24,8 +24,7 @@ export const WelcomeEmail = ({ name }: WelcomeEmailProps) => {
       <Preview>Bienvenido a 0debt, {name}</Preview>
       <Body style={main}>
         <Container style={container}>
-          {/* Si tuvieras un logo online, podrías ponerlo aquí */}
-          <Heading style={h1}>¡Bienvenido a 0debt! 🚀</Heading>
+          <Heading style={h1}>¡Bienvenido a 0debt!</Heading>
           
           <Text style={text}>Hola <strong>{name}</strong>,</Text>
           <Text style={text}>

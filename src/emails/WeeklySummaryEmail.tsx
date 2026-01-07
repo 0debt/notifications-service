@@ -15,14 +15,14 @@ import {
 
 // Definimos qué datos necesita este email para funcionar
 interface WeeklySummaryProps {
-  notifications: any[]; // Usamos any[] por simplicidad, o importa tu interfaz INotification
+  notifications: any[]; // Usamos any[] por simplicidad
 }
 
 export const WeeklySummaryEmail = ({ notifications }: WeeklySummaryProps) => {
   return (
     <Html>
       <Head />
-      <Preview>📅 Tienes {String(notifications.length)} novedades en 0debt</Preview>
+      <Preview>Tienes {String(notifications.length)} novedades en 0debt</Preview>
       <Body style={main}>
         <Container style={container}>
           <Heading style={h1}>Tu Resumen Semanal</Heading>

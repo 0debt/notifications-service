@@ -22,7 +22,7 @@ interface NewExpenseEmailProps {
   owedAmount?: number;
 }
 
-// 2. Definimos el componente UNA SOLA VEZ (usando export const)
+// 2. Definimos el componente
 export const NewExpenseEmail = ({
   payerName,
   amount,
@@ -42,7 +42,6 @@ export const NewExpenseEmail = ({
             Hola, <strong>{payerName}</strong> ha registrado un nuevo pago en el grupo.
           </Text>
 
-          {/* Caja con los detalles del gasto */}
           <Section style={box}>
             <Text style={amountText}>
               {amount}€

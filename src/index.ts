@@ -33,21 +33,20 @@ app.use('/*', cors({
 // -------------------------------------------------
 if (process.env.NODE_ENV !== 'test') {
   connectDB().then(() => {
-    console.log("✅ DB Conectada");
+    console.log("DB Conectada");
     
     // A. Inicializar el suscriptor de Redis (Escucha eventos de otros servicios)
-    // IMPORTANTE: Asegúrate de que dentro de este archivo te suscribes a "group-events"
     initRedisSubscriber(handleRedisEvent);
 
     // B. Inicializar el Cron Job (Resúmenes semanales)
     startWeeklySummaryJob();
     
   }).catch(error => {
-    console.error("❌ Error Crítico DB:", error);
+    console.error("Error Crítico DB:", error);
     process.exit(1);
   });
 } else {
-    console.log("🟡 Modo Test: Saltando conexión a DB y Redis.");
+    console.log("Modo Test: Saltando conexión a DB y Redis.");
 }
 
 // -------------------------------------------------
@@ -96,7 +95,7 @@ app.post("/email/welcome", async (c) => {
 // 4. SERVER
 // -------------------------------------------------
 const port = process.env.PORT || 3000;
-console.log(`🚀 Server is running on port ${port}`);
+console.log(`Server is running on port ${port}`);
 
 export default {
   app,

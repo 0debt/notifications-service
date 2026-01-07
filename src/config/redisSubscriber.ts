@@ -2,18 +2,18 @@ import Redis from 'ioredis';
 
 const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
 
-console.log(`🔍 [RedisConfig] Intentando conectar a: ${redisUrl}`);
+console.log(`[RedisConfig] Intentando conectar a: ${redisUrl}`);
 
 const subscriber = new Redis(redisUrl);
 
 export const initRedisSubscriber = (eventHandler: (channel: string, message: string) => void): void => {
-  console.log('🔌 Iniciando suscripción a canales...');
+  console.log('Iniciando suscripción a canales...');
   
   // Lista de canales a los que nos subscribiremos
   const channels = [
-    'events',               // 👈 AQUÍ ESTÁ EL CAMBIO (Canal de la Pareja 3)
-    'group-events',         // Canal de la Pareja 2 (Groups)
-    'user.deleted',         // Canal de la Pareja 1 (Users)
+    'events',
+    'group-events',
+    'user.deleted',
   ];
 
   subscriber.subscribe(...channels, (err, count) => {
