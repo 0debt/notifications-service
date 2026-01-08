@@ -125,7 +125,7 @@ export const initPreferences = async (c: Context) => {
     
     if (!userId) return c.json({ error: "Falta el userId" }, 400);
 
-    const userEmail = email || "pendiente_de_actualizar@0debt.xyz";
+    const userEmail = email || "pending_update@0debt.xyz";
 
     // 1. Initialize Preferences (Standard Logic)
     await Preferences.updateOne(
@@ -153,7 +153,7 @@ export const initPreferences = async (c: Context) => {
             
             if (userResponse.ok) {
                 const userData = await userResponse.json();
-                const userName = userData.name || "Usuario"; // Fallback if name is null
+                const userName = userData.name || "User"; // Fallback if name is null
 
                 // B. Render Email
                 const htmlContent = await render(
@@ -161,7 +161,7 @@ export const initPreferences = async (c: Context) => {
                 );
 
                 // C. Send Email
-                await sendEmail(userEmail, "¡Bienvenido a 0debt!", htmlContent);
+                await sendEmail(userEmail, "Welcome to 0debt!", htmlContent);
                 console.log(`[WelcomeEmail] Enviado correctamente a ${userEmail}`);
             } else {
                 console.warn(`[WelcomeEmail] No se pudo obtener datos del usuario ${userId}. Status: ${userResponse.status}`);
@@ -303,7 +303,7 @@ export const handleRedisEvent = async (channel: string, message: string): Promis
         if (preference.globalEmailNotifications && preference.alertOnExpenseCreation) {
           
           // 1. Guardar en Mongo
-          const notificationMessage = `Gasto registrado: ${expense.amount}€ en ${expense.groupName}.`;
+          const notificationMessage = `Expense registered: ${expense.amount}€ in ${expense.groupName}.`;
           await createNotification(affectedUserId, notificationMessage);
           
           // 2. Generar el HTML con React Email
@@ -342,12 +342,12 @@ export const handleRedisEvent = async (channel: string, message: string): Promis
 
              await sendEmail(
                recipientEmail,
-               `¡Has sido invitado a ${groupName}!`,
+               `You've been invited to ${groupName}!`,
                htmlContent
              );
            }
         }
-        await createNotification(affectedUserId, `Te han añadido al grupo ${groupName}`);
+        await createNotification(affectedUserId, `You've been added to the group ${groupName}`);
         break;
       }
 
@@ -356,16 +356,16 @@ export const handleRedisEvent = async (channel: string, message: string): Promis
         
         if (preference.globalEmailNotifications && preference.alertOnBalanceChange) {
            const html = getEmailTemplate(
-             "Tu Balance ha Cambiado",
-             `<p>Hola,</p>
-              <p>Tu balance en el grupo <b>${groupName}</b> ha cambiado.</p>
-              <p>Entra en la app para ver los detalles.</p>`,
-             "Cambio de balance"
+             "Your Balance Has Changed",
+             `<p>Hello,</p>
+              <p>Your balance in the group <b>${groupName}</b> has changed.</p>
+              <p>Log in to the app to view details.</p>`,
+             "Balance change"
            );
 
            await sendEmail(
              preference.email,
-             `[Odebt] Tu balance ha cambiado en ${groupName}`,
+             `[0debt] Your balance has changed in ${groupName}`,
              html
            );
         }       

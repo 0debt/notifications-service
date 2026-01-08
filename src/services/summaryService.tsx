@@ -55,7 +55,7 @@ const processWeeklySummaries = async () => {
       
       await emailBreaker.fire(
         pref.email,
-        `[0debt] Tu resumen semanal con ${unreadNotifications.length} novedades`, // Asunto
+        `[0debt] Your weekly summary with ${unreadNotifications.length} updates`, // Asunto
         htmlContent
       );
 

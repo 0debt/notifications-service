@@ -20,34 +20,34 @@ export const GroupInvitationEmail = ({ groupName }: GroupInvitationEmailProps) =
   return (
     <Html>
       <Head />
-      <Preview>Te han invitado al grupo {groupName}</Preview>
+      <Preview>You've been invited to the group {groupName}</Preview>
       <Body style={main}>
         <Container style={container}>
-          <Heading style={h1}>¡Nueva Invitación! 👥</Heading>
+          <Heading style={h1}>New Invitation! 👥</Heading>
           
           <Text style={text}>
-            Has sido añadido al grupo de gastos: <strong>{groupName}</strong>.
+            You've been added to the expense group: <strong>{groupName}</strong>.
           </Text>
 
           <Section style={box}>
             <Text style={paragraph}>
-              Ahora podrás ver los gastos compartidos, añadir tickets y ver cuánto debes (o cuánto te deben).
+              Now you can view shared expenses, add tickets, and see how much you owe (or how much you're owed).
             </Text>
             
             <Button href={`https://www.0debt.xyz/groups/${groupName}`} style={button}>
-              Ir al Grupo
+              Go to Group
             </Button>
           </Section>
 
           <Hr style={hr} />
-          <Text style={footer}>0debt - Cuentas claras, amistades largas.</Text>
+          <Text style={footer}>0debt - Clear accounts, long friendships.</Text>
         </Container>
       </Body>
     </Html>
   );
 };
 
-// Estilos
+// Styles
 const main = { backgroundColor: "#f6f9fc", fontFamily: 'sans-serif' };
 const container = { backgroundColor: "#ffffff", margin: "0 auto", padding: "40px 20px", borderRadius: "5px" };
 const h1 = { color: "#333", textAlign: "center" as const };

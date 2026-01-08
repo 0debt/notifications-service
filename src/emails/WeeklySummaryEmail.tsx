@@ -22,12 +22,12 @@ export const WeeklySummaryEmail = ({ notifications }: WeeklySummaryProps) => {
   return (
     <Html>
       <Head />
-      <Preview>Tienes {String(notifications.length)} novedades en 0debt</Preview>
+      <Preview>You have {String(notifications.length)} updates in 0debt</Preview>
       <Body style={main}>
         <Container style={container}>
-          <Heading style={h1}>Tu Resumen Semanal</Heading>
+          <Heading style={h1}>Your weekly summary</Heading>
           <Text style={text}>
-            Hola, aquí tienes lo que te has perdido esta semana en 0debt:
+            Hello, here's what you missed this week in 0debt:
           </Text>
 
           <Section style={box}>
@@ -37,7 +37,7 @@ export const WeeklySummaryEmail = ({ notifications }: WeeklySummaryProps) => {
                   🔔 <strong>{n.message}</strong>
                 </Text>
                 <Text style={dateText}>
-                  {new Date(n.createdAt).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+                  {new Date(n.createdAt).toLocaleDateString('en-GB')}
                 </Text>
                 {/* Ponemos una línea separadora salvo en el último elemento */}
                 {index < notifications.length - 1 && <Hr style={hr} />}
@@ -46,12 +46,12 @@ export const WeeklySummaryEmail = ({ notifications }: WeeklySummaryProps) => {
           </Section>
 
           <Text style={text}>
-            Entra en la aplicación para gestionar tus deudas.
+            Log in to the app to manage your debts.
           </Text>
           
           <Section style={buttonContainer}>
             <Link href="https://www.0debt.xyz" style={button}>
-              Ir a 0debt
+              Go to 0debt
             </Link>
           </Section>
         </Container>

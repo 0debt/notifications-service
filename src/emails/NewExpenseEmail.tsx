@@ -33,13 +33,13 @@ export const NewExpenseEmail = ({
   return (
     <Html>
       <Head />
-      <Preview>💸 Nuevo gasto: {description}</Preview>
+      <Preview>💸 New expense: {description}</Preview>
       <Body style={main}>
         <Container style={container}>
-          <Heading style={h1}>Nuevo Gasto Registrado</Heading>
+          <Heading style={h1}>New expense registered</Heading>
           
           <Text style={text}>
-            Hola, <strong>{payerName}</strong> ha registrado un nuevo pago en el grupo.
+            Hello, <strong>{payerName}</strong> has registered a new payment in the group.
           </Text>
 
           <Section style={box}>
@@ -47,26 +47,26 @@ export const NewExpenseEmail = ({
               {amount}€
             </Text>
             <Text style={descriptionText}>
-              Concepto: <strong>{description}</strong>
+              Description: <strong>{description}</strong>
             </Text>
             
             {owedAmount > 0 && (
               <Text style={debtText}>
-                Te toca pagar: <span style={{ color: "#e11d48" }}>{owedAmount}€</span>
+                You owe: <span style={{ color: "#e11d48" }}>{owedAmount}€</span>
               </Text>
             )}
           </Section>
 
           <Section style={buttonContainer}>
             <Button href={`https://www.0debt.xyz/expenses?group=${groupId}`} style={button}>
-              Ver Gasto en la App
+              View expense in app
             </Button>
           </Section>
 
           <Hr style={hr} />
 
           <Text style={footer}>
-            Recibes esto porque tienes las notificaciones activadas en 0debt.
+            You're receiving this because you have notifications enabled in 0debt.
           </Text>
         </Container>
       </Body>

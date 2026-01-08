@@ -21,32 +21,32 @@ export const WelcomeEmail = ({ name }: WelcomeEmailProps) => {
   return (
     <Html>
       <Head />
-      <Preview>Bienvenido a 0debt, {name}</Preview>
+      <Preview>Welcome to 0debt, {name}</Preview>
       <Body style={main}>
         <Container style={container}>
-          <Heading style={h1}>¡Bienvenido a 0debt!</Heading>
+          <Heading style={h1}>Welcome to 0debt!</Heading>
           
-          <Text style={text}>Hola <strong>{name}</strong>,</Text>
+          <Text style={text}>Hello <strong>{name}</strong>,</Text>
           <Text style={text}>
-            Estamos encantados de que te hayas unido. Con 0debt, gestionar los gastos compartidos nunca ha sido tan fácil (ni tan justo).
+            We're delighted that you've joined. With 0debt, managing shared expenses has never been easier (or fairer).
           </Text>
 
           <Section style={box}>
             <Text style={paragraph}>
-              Ya puedes empezar a crear grupos, añadir amigos y registrar gastos. 
-              Nosotros nos encargamos de las matemáticas.
+              You can now start creating groups, adding friends, and registering expenses. 
+              We'll take care of the math.
             </Text>
             
             <Button href="https://www.0debt.xyz/groups" style={button}>
-              Ir a grupos
+              Go to groups
             </Button>
           </Section>
 
           <Hr style={hr} />
           
           <Text style={footer}>
-            Si tienes alguna duda, responde a este correo. <br/>
-            El equipo de 0debt.
+            If you have any questions, reply to this email. <br/>
+            The 0debt team.
           </Text>
         </Container>
       </Body>
