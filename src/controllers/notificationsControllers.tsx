@@ -122,10 +122,12 @@ export const initPreferences = async (c: Context) => {
   try {
     const body = await c.req.json();
     const { userId, email } = body;
+    
     if (!userId) return c.json({ error: "Falta el userId" }, 400);
 
     const userEmail = email || "pendiente_de_actualizar@0debt.xyz";
 
+    // 1. Initialize Preferences (Standard Logic)
     await Preferences.updateOne(
       { userId }, 
       { 
@@ -139,6 +141,37 @@ export const initPreferences = async (c: Context) => {
     );
 
     console.log(`Preferencias inicializadas para usuario: ${userId}`);
+
+    // 2. Welcome Email Logic (New SAGA Step)
+    // We execute this asynchronously so we don't block the HTTP response excessively,
+    // but we await it inside a try-catch to log errors properly.
+    if (userId && userEmail) {
+        try {
+            // A. Fetch User Details from Users Service Internal API
+            // Path structure based on users-service routing: /api/v1 + /users + /internal/users/:id
+            const userResponse = await fetch(`${USERS_SERVICE_URL}/api/v1/users/internal/users/${userId}`);
+            
+            if (userResponse.ok) {
+                const userData = await userResponse.json();
+                const userName = userData.name || "Usuario"; // Fallback if name is null
+
+                // B. Render Email
+                const htmlContent = await render(
+                    <WelcomeEmail name={userName} />
+                );
+
+                // C. Send Email
+                await sendEmail(userEmail, "¡Bienvenido a 0debt!", htmlContent);
+                console.log(`[WelcomeEmail] Enviado correctamente a ${userEmail}`);
+            } else {
+                console.warn(`[WelcomeEmail] No se pudo obtener datos del usuario ${userId}. Status: ${userResponse.status}`);
+            }
+        } catch (emailError) {
+            console.error("[WelcomeEmail] Error en el proceso de envío:", emailError);
+            // Non-blocking error: we still return 201 because preferences were created.
+        }
+    }
+
     return c.json({ status: "created" }, 201);
   } catch (error) {
     console.error("Error en initPreferences:", error);
